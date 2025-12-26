@@ -1,10 +1,12 @@
+
+####################....... AI.py
 import modal
 from .common import app, image, vol, TABLE_NAME 
 from .database import Database
 import os
 import shutil
 from . import search_global
-
+# import cv2
 # Import modules
 from . import extract, index, search, search_global # Added search_global
 

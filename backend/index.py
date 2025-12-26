@@ -1,3 +1,5 @@
+####################....... index.py
+
 def index_frames(frames_folder, db_path, video_id, table_name, title="", tags=""):
     import os
     import lancedb
@@ -66,6 +68,14 @@ def index_frames(frames_folder, db_path, video_id, table_name, title="", tags=""
 
     # --- 4. INDEX FRAMES (YOUR EXISTING LOGIC) ---
     print(f"📸 Scanning frames in '{frames_folder}'...")
+
+    # 👇 CRITICAL FIX: Delete old frame data to prevent "Ghost Results" (3 min timestamp in 2 min video)
+    try: 
+        tbl_frames.delete(f"video_id = '{video_id}'")
+        print(f"🧹 Cleaned up old data for {video_id}")
+    except: 
+        pass
+
 
     files = [f for f in os.listdir(frames_folder) if f.endswith(".jpg")]
     if not files:

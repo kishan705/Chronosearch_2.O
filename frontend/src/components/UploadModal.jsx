@@ -1,3 +1,6 @@
+
+//..........................UploadModal.jsx >>>>>>>>>>>>>>
+
 import React, { useState, useCallback } from 'react'; // Added useCallback for stability
 import { Upload, X, Lock, Globe, Loader2, Tag, Type, AlertCircle } from 'lucide-react';
 import { api } from '../services/api';

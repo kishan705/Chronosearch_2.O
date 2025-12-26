@@ -1,10 +1,12 @@
 import axios from 'axios';
 
-// 👇 Vite Proxy handles the /api prefix
-const API_BASE_URL = "/api";
+// 🛑 IMPORTANT: Replace this with your ACTUAL Modal Backend URL
+// It usually looks like: https://kishanamaliya--chronosearch-v8-golden-chrono-api.modal.run
+// Do NOT include the trailing slash or "/api" here.
+const CLOUD_URL =import.meta.env.VITE_API_URL;
 
 const api_client = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: `${CLOUD_URL}/api`, // We append /api here automatically
 });
 
 api_client.interceptors.request.use((config) => {
@@ -16,7 +18,20 @@ api_client.interceptors.request.use((config) => {
 export const api = {
   // --- AUTH ---
   login: async (username, password) => {
+    // Note: We use URLSearchParams for OAuth2 compatibility if needed, 
+    // but JSON body is fine given your backend setup.
     const response = await api_client.post('/login', { username, password });
+    if (response.data.access_token) {
+      localStorage.setItem('token', response.data.access_token);
+      localStorage.setItem('user_id', response.data.user_id);
+      localStorage.setItem('username', response.data.username);
+    }
+    return response.data;
+  },
+
+  // 👇 ADDED THIS (Missing in your code)
+  googleLogin: async (token) => {
+    const response = await api_client.post('/google_login', { token });
     if (response.data.access_token) {
       localStorage.setItem('token', response.data.access_token);
       localStorage.setItem('user_id', response.data.user_id);
@@ -57,14 +72,11 @@ export const api = {
     return res.data;
   },
 
-  // 👇 NEW: Hybrid Global Search (Titles + Visuals)
   searchGlobal: async (query) => {
-    // Points to our new backend endpoint
     const res = await api_client.get(`/search_global?query=${encodeURIComponent(query)}`);
     return res.data.results || [];
   },
 
-  // 👇 OLD: Deep Search (Inside Video Player)
   searchInVideo: async (query, videoId) => {
     const res = await api_client.get(`/search?query=${encodeURIComponent(query)}&video_id=${videoId}`);
     return res.data.results || [];
@@ -84,7 +96,17 @@ export const api = {
     const res = await api_client.post('/upload', formData);
     return res.data;
   },
+  
+  reindexVideo: async (videoId) => {
+    const userId = localStorage.getItem('user_id');
+    const formData = new FormData();
+    formData.append('user_id', userId);
 
-  // 👇 NEW: Smart Streamer URL (Fixes 404s)
-  getVideoUrl: (videoId) => `/api/stream/${videoId}`
+    // We send video_id in URL, and user_id in Body (Form)
+    const res = await api_client.post(`/reindex?video_id=${videoId}`, formData);
+    return res.data;
+  },
+
+  // 👇 UPDATED: Uses the Full Cloud URL to avoid Proxy Issues
+  getVideoUrl: (videoId) => `${CLOUD_URL}/api/stream/${videoId}`
 };

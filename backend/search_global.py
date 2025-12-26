@@ -1,3 +1,5 @@
+####################....... search_global.py
+
 def search_global_unified(query, db_path, frame_table_name):
     import lancedb
     import torch

@@ -1,7 +1,8 @@
+####################.......extract.py
 def extract_frames(video_path, output_folder):
     """
     Exact logic provided by user:
-    - 1 Frame Per Second
+    - 2 Frames Per Second (Fixed Math)
     - Resize to width 640 (Maintain Aspect Ratio)
     """
     import cv2
@@ -19,7 +20,11 @@ def extract_frames(video_path, output_folder):
 
     original_fps = cap.get(cv2.CAP_PROP_FPS) or 24
     print(f"Processing video at {original_fps} FPS...")
-    
+
+    # Capture 2 frames per second
+    capture_interval = int(original_fps / 2)
+    if capture_interval < 1: capture_interval = 1
+
     frame_count = 0
     saved_count = 0
 
@@ -28,26 +33,23 @@ def extract_frames(video_path, output_folder):
         if not success:
             break # End of video
         
-        # Calculate current timestamp
-        current_time_sec = frame_count / original_fps
-        
-        # Simpler Logic: Just save exactly on the integer second mark
-        # (Your requested logic)
-        if frame_count % int(original_fps) == 0:
+        # Only save every Nth frame (e.g., every 15th frame for 30fps video)
+        if frame_count % int(capture_interval) == 0:
             
-            # --- THE 4K FIX START (Your Logic) ---
+            current_time_sec = saved_count * 0.5
+
+            # --- THE 4K FIX START ---
             height, width = frame.shape[:2]
             new_width = 640
             new_height = int(height * (new_width / width)) # Keep aspect ratio
             resized_frame = cv2.resize(frame, (new_width, new_height))
             # --- THE 4K FIX END ---
 
-            # Save the file
-            filename = f"frame_{int(current_time_sec):04d}.jpg"
+            # Save the file (Double format: frame_1.50.jpg)
+            filename = f"frame_{current_time_sec:.2f}.jpg"
             filepath = os.path.join(output_folder, filename)
             cv2.imwrite(filepath, resized_frame)
             
-            # print(f"Saved {filename} (Resized to {new_width}x{new_height})")
             saved_count += 1
 
         frame_count += 1

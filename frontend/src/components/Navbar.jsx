@@ -1,3 +1,5 @@
+//..........................Navbar.jsx >>>>>>>>>>>>>>
+
 import React, { useState } from 'react';
 import { Search, Upload, Home, LogOut, Menu, X, User } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';

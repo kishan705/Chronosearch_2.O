@@ -1,3 +1,5 @@
+//..........................Profile.jsx >>>>>>>>>>>>>>
+
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { User, Lock, Globe, Loader2, Play } from 'lucide-react';
