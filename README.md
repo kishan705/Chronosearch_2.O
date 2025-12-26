@@ -1,55 +1,78 @@
+Here is the updated **README.md**.
 
+I have rewritten the introduction and added a dedicated **"Global vs. Deep Search"** section to clearly explain that this is **not** just a normal video title search, but a powerful AI tool that looks *inside* the footage.
 
-
+---
 
 # ChronoSearch 🕰️
 
 **AI-Powered Semantic Video Search Engine**
 
-ChronoSearch is a video hosting platform that lets you **search inside videos** using natural language. Instead of just matching titles or tags, it uses **Computer Vision** and **Vector Embeddings** to understand the visual content of every frame.
+> **Don't just search for videos. Search *inside* them.**
 
-Search for *"Dragon"* or *"Red Car"*, and ChronoSearch will jump to the exact second that object appears, even if it's never mentioned in the title.
+ChronoSearch is a next-generation video platform that goes beyond traditional keyword matching. While standard platforms only look at titles and tags, ChronoSearch uses **Computer Vision** and **Vector Embeddings** to "watch" and understand every frame of your video.
 
-![ChronoSearch Dashboard](frontend/public/dashboard-preview.png)
+Imagine searching for *"White sneakers"* or *"Explosion"* and instantly jumping to the exact timestamp where it happens—even if those words never appear in the title.
+
+---
+
+## 🔎 One Platform, Two Search Engines
+
+Most video platforms only let you find *files*. ChronoSearch lets you find *moments*. We have engineered two distinct search modes to handle both needs:
+
+### 1. 🌍 Global Search (The Librarian)
+
+* **What it does:** Searches across your entire video library.
+* **How it works:** Matches your query against video **Titles** and **Tags** using hybrid semantic search.
+* **Use Case:** *"Show me all my travel vlogs from 2024."*
+
+### 2. 👁️ Deep Search (The Detective)
+
+* **What it does:** Searches **inside** a single video, frame-by-frame.
+* **How it works:** Uses Google's **SigLIP** model to convert visual frames into vectors. It ignores text and looks for **visual concepts**.
+* **Use Case:** *"Go to the exact second where I was holding a coffee cup."*
 
 ---
 
 ## 🚀 Key Features
 
-* **🔍 Hybrid Search Engine:** Combines **Metadata Search** (Titles/Tags) with **Deep Visual Search** (Frame-by-frame analysis) for distinct results.
-* **🧠 Visual AI Indexing:** Uses Google's **SigLIP** model to convert video frames into 1152-dimensional vectors.
-* **⚡ Serverless Backend:** Built on **Modal**, scaling GPUs (T4) on-demand to process uploads in parallel.
-* **🎥 Smart Streaming:** Custom-built streaming endpoint supporting **Range Requests (206 Partial Content)** for smooth playback.
-* **📂 Modular Architecture:** Clean separation of Extraction, Indexing, and Search logic.
-* **🔐 Secure Auth:** Integrated Google OAuth + JWT for secure user management.
+* **🧠 Visual AI Indexing:** Automatically extracts frames at 1 FPS and converts them into 1152-dimensional semantic vectors.
+* **⚡ Serverless Backend:** Built on **Modal**, scaling high-performance T4 GPUs on-demand to process uploads in parallel.
+* **🔍 Hybrid Search Architecture:** Seamlessly merges metadata results (Global) with computer vision results (Deep).
+* **🎥 Smart Streaming:** Custom-built video streaming supporting **Range Requests (206 Partial Content)** for zero-latency seeking.
+* **🛠️ Auto-Healing Index:** Built-in "Repair" functionality to fix synchronization issues or missing frames automatically.
+* **🔐 Secure Auth:** Integrated Google OAuth + JWT for secure user management and private video storage.
 
 ---
 
 ## 🛠️ Tech Stack
 
 ### **Frontend**
-* **React + Vite:** High-performance UI.
-* **Tailwind CSS:** Modern styling.
-* **Axios:** API communication.
+
+* **React + Vite:** High-performance reactive UI.
+* **Tailwind CSS:** Modern, responsive styling.
+* **Axios:** Optimized API communication.
 
 ### **Backend (The Core)**
-* **Python & FastAPI:** REST API.
-* **Modal:** Serverless Cloud Platform (GPU & Storage).
-* **LanceDB:** Vector Database for billion-scale vector search.
-* **OpenCV & PIL:** Frame extraction and processing.
-* **HuggingFace Transformers:** SigLIP Model (`google/siglip-so400m-patch14-384`).
+
+* **Python & FastAPI:** High-speed REST API.
+* **Modal:** Serverless Cloud Platform (GPU orchestration & Persistent Storage).
+* **LanceDB:** Vector Database for billion-scale similarity search.
+* **OpenCV:** Advanced frame extraction and resizing logic.
+* **HuggingFace Transformers:** Powered by the `google/siglip-so400m-patch14-384` model.
 
 ---
 
 ## 🏗️ Architecture
 
-1.  **Extraction:** When a video is uploaded, the backend extracts frames at **1 FPS**.
-2.  **Vectorization:** Each frame is passed through the **SigLIP AI model** to generate a vector embedding.
-3.  **Indexing:** Vectors are stored in **LanceDB** on a persistent Cloud Volume.
-4.  **Search:**
-    * **Global:** Scans Titles & Tags first.
-    * **Visual:** Scans Frame Vectors using Cosine Similarity.
-    * **Hybrid:** Merges and ranks results to find the best match.
+1. **Extraction:** When a video is uploaded, the backend intelligently extracts frames (Smart 1 FPS sampling).
+2. **Vectorization:** Each frame is passed through the **SigLIP AI model** to generate a semantic embedding.
+3. **Indexing:** Vectors are stored in **LanceDB** on a persistent Cloud Volume for sub-millisecond retrieval.
+4. **Search Routing:**
+* `/search_global`: Scans Titles & Tags index.
+* `/search_video`: Scans Frame Vector index using Cosine Similarity.
+
+
 
 ---
 
@@ -57,16 +80,16 @@ Search for *"Dragon"* or *"Red Car"*, and ChronoSearch will jump to the exact se
 
 ```text
 ├── backend/
-│   ├── main.py            # Entry point (Run this to deploy)
-│   ├── AI.py              # Modal App Orchestrator (GPU Logic)
-│   ├── api.py             # FastAPI Routes (Stream, Upload, Search)
-│   ├── auth.py            # Authentication Logic (JWT & Google Auth)
-│   ├── common.py          # Configuration & Modal Image Definition
-│   ├── database.py        # SQL Database Models (Users, Videos)
-│   ├── extract.py         # Module: Frame Extraction (OpenCV)
-│   ├── index.py           # Module: Vector Indexing (SigLIP + LanceDB)
-│   ├── search.py          # Module: Deep Visual Search Logic
-│   └── search_global.py   # Module: Hybrid Global Search Logic
+│   ├── main.py             # Entry point (Run this to deploy)
+│   ├── AI.py               # Modal App Orchestrator (GPU Logic)
+│   ├── api.py              # FastAPI Routes (Stream, Upload, Search)
+│   ├── auth.py             # Authentication Logic (JWT & Google Auth)
+│   ├── common.py           # Configuration & Modal Image Definition
+│   ├── database.py         # SQL Database Models (Users, Videos)
+│   ├── extract.py          # Module: Frame Extraction (OpenCV)
+│   ├── index.py            # Module: Vector Indexing (SigLIP + LanceDB)
+│   ├── search.py           # Module: Deep Visual Search Logic
+│   └── search_global.py    # Module: Hybrid Global Search Logic
 │
 ├── frontend/
 │   ├── src/
@@ -96,8 +119,8 @@ Search for *"Dragon"* or *"Red Car"*, and ChronoSearch will jump to the exact se
 ### 1. Clone the Repository
 
 ```bash
-git clone [https://github.com/YOUR_USERNAME/ChronoSearch.git](https://github.com/YOUR_USERNAME/ChronoSearch.git)
-cd ChronoSearch
+git clone https://github.com/kishan705/Chronosearch_2.O.git
+cd Chronosearch_2.O
 
 ```
 
@@ -150,6 +173,4 @@ npm run dev
 
 This project is open-source and available under the **MIT License**.
 
-
-Built with ❤️ by [Kishan Amaliya*](https://github.com/kishan705)
-
+Built with ❤️ by [Kishan Amaliya](https://github.com/kishan705)
