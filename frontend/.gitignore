@@ -1,4 +1,18 @@
-# Logs
+# --- 1. Security (CRITICAL) ---
+.env
+.env.local
+
+# --- 2. Your Personal Files ---
+notes/
+
+# --- 3. Heavy Data (Don't upload videos!) ---
+backend/data/
+frontend/public/videos/
+*.mp4
+*.mov
+*.mkv
+
+# --- 4. Logs ---
 logs
 *.log
 npm-debug.log*
@@ -7,12 +21,13 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# --- 5. Dependencies ---
 node_modules
 dist
 dist-ssr
 *.local
 
-# Editor directories and files
+# --- 6. Editor Settings ---
 .vscode/*
 !.vscode/extensions.json
 .idea
