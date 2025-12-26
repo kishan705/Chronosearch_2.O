@@ -1,7 +1,3 @@
-Here is the updated **README.md**.
-
-I have rewritten the introduction and added a dedicated **"Global vs. Deep Search"** section to clearly explain that this is **not** just a normal video title search, but a powerful AI tool that looks *inside* the footage.
-
 ---
 
 # ChronoSearch 🕰️
@@ -15,7 +11,7 @@ ChronoSearch is a next-generation video platform that goes beyond traditional ke
 Imagine searching for *"White sneakers"* or *"Explosion"* and instantly jumping to the exact timestamp where it happens—even if those words never appear in the title.
 
 ---
-
+![ChronoSearch Dashboard](frontend/public/dashboard-preview.png)
 ## 🔎 One Platform, Two Search Engines
 
 Most video platforms only let you find *files*. ChronoSearch lets you find *moments*. We have engineered two distinct search modes to handle both needs:
