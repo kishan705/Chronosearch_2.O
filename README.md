@@ -133,6 +133,8 @@ modal setup
 
 # Deploy the App
 modal deploy backend/main.py
+or
+modal deploy -m backend.main
 
 ```
 
