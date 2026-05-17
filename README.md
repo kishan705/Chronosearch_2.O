@@ -16,13 +16,13 @@ Imagine searching for *"White sneakers"* or *"Explosion"* and instantly jumping 
 
 Most video platforms only let you find *files*. ChronoSearch lets you find *moments*. We have engineered two distinct search modes to handle both needs:
 
-### 1. 🌍 Global Search (The Librarian)
+### 1. 🌍 Global Search
 
 * **What it does:** Searches across your entire video library.
 * **How it works:** Matches your query against video **Titles** and **Tags** using hybrid semantic search.
 * **Use Case:** *"Show me all my travel vlogs from 2024."*
 
-### 2. 👁️ Deep Search (The Detective)
+### 2. 👁️ Deep Search 
 
 * **What it does:** Searches **inside** a single video, frame-by-frame.
 * **How it works:** Uses Google's **SigLIP** model to convert visual frames into vectors. It ignores text and looks for **visual concepts**.
