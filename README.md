@@ -7,8 +7,7 @@
 
 ChronoSearch is a next-generation video platform that goes beyond traditional keyword matching. While standard platforms only look at titles and tags, ChronoSearch uses **Computer Vision** and **Vector Embeddings** to "watch" and understand every frame of your video.
 
-Imagine searching for *"White sneakers"* or *"Explosion"* and instantly jumping to the exact timestamp where it happens—even if those words never appear in the title.
-
+Below is the **DEMO** , searching *'jon snow'* in video and it is giving the results
 ![ChronoSearch Dashboard](test.gif)
 ---
 
