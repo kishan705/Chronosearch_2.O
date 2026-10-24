@@ -9,7 +9,7 @@ ChronoSearch is a next-generation video platform that goes beyond traditional ke
 
 
 
-Demo: Searching for 'Jon Snow' instantly retrieves the matching video results.
+**Demo: Searching for 'Jon Snow' instantly retrieves the matching video results.**
 
 ![ChronoSearch Dashboard](test.gif)
 ---
