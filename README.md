@@ -9,7 +9,7 @@ ChronoSearch is a next-generation video platform that goes beyond traditional ke
 
 Imagine searching for *"White sneakers"* or *"Explosion"* and instantly jumping to the exact timestamp where it happens—even if those words never appear in the title.
 
-![ChronoSearch Dashboard](frontend/public/dashboard-preview.png)
+![ChronoSearch Dashboard](test.gif)
 ---
 
 ## 🔎 One Platform, Two Search Engines
