@@ -10,7 +10,7 @@ ChronoSearch is a next-generation video platform that goes beyond traditional ke
 
 
 
-#DEMO ~ searching *'jon snow'*
+# DEMO ~ searching *'jon snow'*
 
 ![ChronoSearch Dashboard](test.gif)
 ---
