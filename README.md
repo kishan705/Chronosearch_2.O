@@ -4,11 +4,15 @@
 **AI-Powered Semantic Video Search Engine**
 
 > **Don't just search for videos. Search *inside* them.**
-> 
-![React](https://img.shields.io/badge/React-Frontend_UI-61dafb?logo=react&logoColor=white)
+
+
 ![SigLIP](https://img.shields.io/badge/SigLIP-Vision_Language-8e44ad)
+![Python](https://img.shields.io/badge/Python-3.10+-blue.svg?logo=python&logoColor=white)
+![PyTorch](https://img.shields.io/badge/PyTorch-Deep_Learning-EE4C2C.svg?logo=pytorch&logoColor=white)
+![OpenCV](https://img.shields.io/badge/OpenCV-Computer_Vision-5C3EE8.svg?logo=opencv&logoColor=white)
 ![OAuth 2.0](https://img.shields.io/badge/OAuth_2.0-Authorization-3b5998)
 ![JWT](https://img.shields.io/badge/JWT-Authentication-d63384?logo=jsonwebtokens&logoColor=white)
+![React](https://img.shields.io/badge/React-Frontend_UI-61dafb?logo=react&logoColor=white)
 
 
 ChronoSearch is a next-generation video platform that goes beyond traditional keyword matching. While standard platforms only look at titles and tags, ChronoSearch uses **Computer Vision** and **Vector Embeddings** to "watch" and understand every frame of your video.
