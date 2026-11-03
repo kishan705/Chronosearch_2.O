@@ -1,5 +1,5 @@
 
-# ChronoSearch 🕰️
+# ChronoSearch
 
 **AI-Powered Semantic Video Search Engine**
 
@@ -29,13 +29,13 @@ ChronoSearch is a next-generation video platform that goes beyond traditional ke
 
 Most video platforms only let you find *files*. ChronoSearch lets you find *moments*. We have engineered two distinct search modes to handle both needs:
 
-### 1. 🌍 Global Search
+### 1. Global Search
 
 * **What it does:** Searches across your entire video library.
 * **How it works:** Matches your query against video **Titles** and **Tags** using hybrid semantic search.
 * **Use Case:** *"Show me all my travel vlogs from 2024."*
 
-### 2. 👁️ Deep Search 
+### 2. Deep Search 
 
 * **What it does:** Searches **inside** a single video, frame-by-frame.
 * **How it works:** Uses Google's **SigLIP** model to convert visual frames into vectors. It ignores text and looks for **visual concepts**.
@@ -43,18 +43,18 @@ Most video platforms only let you find *files*. ChronoSearch lets you find *mome
 
 ---
 
-## 🚀 Key Features
+## Key Features
 
-* **🧠 Visual AI Indexing:** Automatically extracts frames at 1 FPS and converts them into 1152-dimensional semantic vectors.
-* **⚡ Serverless Backend:** Built on **Modal**, scaling high-performance T4 GPUs on-demand to process uploads in parallel.
-* **🔍 Hybrid Search Architecture:** Seamlessly merges metadata results (Global) with computer vision results (Deep).
-* **🎥 Smart Streaming:** Custom-built video streaming supporting **Range Requests (206 Partial Content)** for zero-latency seeking.
-* **🛠️ Auto-Healing Index:** Built-in "Repair" functionality to fix synchronization issues or missing frames automatically.
-* **🔐 Secure Auth:** Integrated Google OAuth + JWT for secure user management and private video storage.
+* **Visual AI Indexing:** Automatically extracts frames at 1 FPS and converts them into 1152-dimensional semantic vectors.
+* **Serverless Backend:** Built on **Modal**, scaling high-performance T4 GPUs on-demand to process uploads in parallel.
+* **Hybrid Search Architecture:** Seamlessly merges metadata results (Global) with computer vision results (Deep).
+* **Smart Streaming:** Custom-built video streaming supporting **Range Requests (206 Partial Content)** for zero-latency seeking.
+* **Auto-Healing Index:** Built-in "Repair" functionality to fix synchronization issues or missing frames automatically.
+* **Secure Auth:** Integrated Google OAuth + JWT for secure user management and private video storage.
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### **Frontend**
 
@@ -72,7 +72,7 @@ Most video platforms only let you find *files*. ChronoSearch lets you find *mome
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 1. **Extraction:** When a video is uploaded, the backend intelligently extracts frames (Smart 1 FPS sampling).
 2. **Vectorization:** Each frame is passed through the **SigLIP AI model** to generate a semantic embedding.
@@ -85,7 +85,7 @@ Most video platforms only let you find *files*. ChronoSearch lets you find *mome
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```text
 ├── backend/
@@ -123,7 +123,7 @@ Most video platforms only let you find *files*. ChronoSearch lets you find *mome
 
 ---
 
-## ⚡ Setup & Installation
+## Setup & Installation
 
 ### 1. Clone the Repository
 
@@ -180,7 +180,7 @@ npm run dev
 
 ---
 
-## 🛡️ License
+## License
 
 This project is open-source and available under the **MIT License**.
 
