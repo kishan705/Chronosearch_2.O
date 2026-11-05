@@ -4,7 +4,7 @@ import os
 import shutil
 import sqlite3
 
-# Import your cloud volume
+# Import cloud volume
 from .common import app, vol
 
 @app.function(volumes={"/data": vol})
