@@ -81,7 +81,6 @@ class Database:
         with sqlite3.connect(DB_PATH) as conn:
             conn.row_factory = sqlite3.Row
             try:
-                # 👇 FIX: Changed "SELECT status" to "SELECT *"
                 row = conn.execute("SELECT * FROM videos WHERE video_id = ?", (video_id,)).fetchone()
                 return dict(row) if row else None
             except: return None
