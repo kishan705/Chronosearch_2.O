@@ -31,7 +31,7 @@ def search_index(query, db_path, table_name, filter_video_id=None):
     with torch.no_grad():
         inputs = processor(text=[query], return_tensors="pt", padding="max_length").to(device)
         text_outputs = model.get_text_features(**inputs)
-        # Normalize (CRITICAL per your code)
+        # Normalize 
         text_outputs = text_outputs / text_outputs.norm(p=2, dim=-1, keepdim=True)
         query_vector = text_outputs[0].cpu().numpy()
 
@@ -47,7 +47,7 @@ def search_index(query, db_path, table_name, filter_video_id=None):
     # --- 4. FORMAT RESULTS ---
     final_results = []
     for index, row in results.iterrows():
-        # Your Score Logic: 1 - distance
+        # Score Logic: 1 - distance
         score = 1 - row['_distance'] 
         
         # Convert to % for UI display
