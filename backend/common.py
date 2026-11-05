@@ -2,7 +2,7 @@
 ####################....... common.py
 import modal
 
-# 👇 V8: The Final "Golden" Version
+
 APP_NAME = "chronosearch-v8-golden"
 TABLE_NAME = "video_vectors_v8_golden"
 
