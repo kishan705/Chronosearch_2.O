@@ -15,7 +15,7 @@ def search_global_unified(query, db_path, frame_table_name):
     META_TABLE = "video_metadata_index"
     
     # --- 1. LOAD MODEL ---
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "mps" if torch.mps.is_available() else "cpu"
     # We load the model once to vectorise the query
     model = AutoModel.from_pretrained("google/siglip-so400m-patch14-384").to(device)
     processor = AutoProcessor.from_pretrained("google/siglip-so400m-patch14-384")
@@ -33,7 +33,7 @@ def search_global_unified(query, db_path, frame_table_name):
     final_candidates = {} # Map: video_id -> {score, reason, timestamp}
 
     # ==========================================
-    # 🕵️ STRATEGY A: METADATA SEARCH (Titles)
+    # STRATEGY A: METADATA SEARCH (Titles)
     # ==========================================
     if META_TABLE in db.table_names():
         tbl_meta = db.open_table(META_TABLE)
@@ -57,7 +57,7 @@ def search_global_unified(query, db_path, frame_table_name):
             }
 
     # ==========================================
-    # 👁️ STRATEGY B: VISUAL SEARCH (Frames)
+    # STRATEGY B: VISUAL SEARCH (Frames)
     # ==========================================
     if frame_table_name in db.table_names():
         tbl_frames = db.open_table(frame_table_name)
@@ -69,7 +69,7 @@ def search_global_unified(query, db_path, frame_table_name):
             vid_id = row['video_id']
             raw_score = 1 - row['_distance']
             
-            # Use your Honest Threshold (0.15)
+            #  Threshold (0.15)
             if raw_score < 0.15: continue
             
             # Check if we already found this video via Title
