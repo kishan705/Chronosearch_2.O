@@ -66,7 +66,7 @@ async def upload_video(
     
     Database().add_video.remote(video_id, user_id, file.filename, title, tags, visibility)
     
-    # 🚀 SPAWN AI (Background)
+    # SPAWN AI (Background)
     VideoIndexer().process_video.spawn(save_path, video_id, title)
     
     return {"status": "success", "video_id": video_id}
@@ -160,13 +160,13 @@ async def reindex_video(video_id: str, user_id: str = Form(None)): # Allow None
     import time
     from .common import vol
     
-    # 🕵️‍♂️ CHECK 1: Existence
+    # CHECK 1: Existence
     db = Database()
     meta = db.get_video_metadata.remote(video_id)
     if not meta:
         return {"error": "Video not found"}
 
-    # ❌ REMOVED THE OWNER CHECK
+    #  REMOVED THE OWNER CHECK
     # We allow anyone to help "fix" the community index.
     # if meta['user_id'] != user_id: return {"error": "Unauthorized"}
 
@@ -180,7 +180,7 @@ async def reindex_video(video_id: str, user_id: str = Form(None)): # Allow None
         db.update_processing_status.remote(video_id, "failed_missing_file")
         return {"error": "CRITICAL: Video file missing from disk."}
 
-    # 🕵️‍♂️ CHECK 4: COOL-DOWN TIMER (The Spam Protection) ❄️
+    # CHECK 4: COOL-DOWN TIMER (The Spam Protection) 
     cooldown_dir = "/data/repair_logs"
     os.makedirs(cooldown_dir, exist_ok=True)
     timestamp_file = f"{cooldown_dir}/{video_id}.last_run"
@@ -194,7 +194,7 @@ async def reindex_video(video_id: str, user_id: str = Form(None)): # Allow None
             remaining = int(300 - (time.time() - last_run))
             return {"error": f"Cooldown active. Please wait {remaining} seconds."}
 
-    # ✅ START
+    # START
     print(f"🔧 Starting Public Re-index for {video_id}")
     
     with open(timestamp_file, 'w') as f:
