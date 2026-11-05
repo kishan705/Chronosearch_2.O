@@ -33,7 +33,7 @@ def index_frames(frames_folder, db_path, video_id, table_name, title="", tags=""
     try: tbl_frames = db.open_table(table_name)
     except: tbl_frames = db.create_table(table_name, schema=schema_frames)
 
-    # B. METADATA TABLE (For "Global Search") - NEW 🌟
+    # B. METADATA TABLE (For "Global Search") 
     metadata_table_name = "video_metadata_index"
     schema_meta = pa.schema([
         pa.field("vector", pa.list_(pa.float32(), 1152)),
@@ -69,7 +69,7 @@ def index_frames(frames_folder, db_path, video_id, table_name, title="", tags=""
     # --- 4. INDEX FRAMES (YOUR EXISTING LOGIC) ---
     print(f"📸 Scanning frames in '{frames_folder}'...")
 
-    # 👇 CRITICAL FIX: Delete old frame data to prevent "Ghost Results" (3 min timestamp in 2 min video)
+    # CRITICAL FIX: Delete old frame data to prevent "Ghost Results" (3 min timestamp in 2 min video)
     try: 
         tbl_frames.delete(f"video_id = '{video_id}'")
         print(f"🧹 Cleaned up old data for {video_id}")
@@ -93,7 +93,7 @@ def index_frames(frames_folder, db_path, video_id, table_name, title="", tags=""
         with torch.no_grad():
             inputs = processor(images=image, return_tensors="pt").to(device)
             outputs = model.get_image_features(**inputs)
-            # Your normalization
+            # normalization
             outputs = outputs / outputs.norm(p=2, dim=-1, keepdim=True)
             vector = outputs[0].cpu().tolist()
             
