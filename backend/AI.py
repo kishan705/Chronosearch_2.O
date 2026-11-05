@@ -8,7 +8,7 @@ import shutil
 from . import search_global
 # import cv2
 # Import modules
-from . import extract, index, search, search_global # Added search_global
+from . import extract, index, search, search_global 
 
 # Paths
 VOLUME_DB_PATH = "/data/lancedb_stable"
@@ -30,7 +30,7 @@ class VideoIndexer:
             os.makedirs(TEMP_DB_PATH)
 
         try:
-            # 1. EXTRACT (Your Logic)
+            # 1. EXTRACT 
             extract.extract_frames(video_path, TEMP_FRAMES_DIR)
             
             # 2. INDEX (Frames + New Metadata)
