@@ -1,187 +1,331 @@
-
 # ChronoSearch
 
-**AI-Powered Semantic Video Search Engine**
+**AI-powered semantic video search: find the exact moment, not just the file.**
 
 > **Don't just search for videos. Search *inside* them.**
 
+### 🔴 Live demo: [grand-biscochitos-1644ee.netlify.app](https://grand-biscochitos-1644ee.netlify.app)
 
 ![SigLIP](https://img.shields.io/badge/SigLIP-Vision_Language-8e44ad)
-![Python](https://img.shields.io/badge/Python-3.10+-blue.svg?logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.11-blue.svg?logo=python&logoColor=white)
 ![PyTorch](https://img.shields.io/badge/PyTorch-Deep_Learning-EE4C2C.svg?logo=pytorch&logoColor=white)
-![OpenCV](https://img.shields.io/badge/OpenCV-Computer_Vision-5C3EE8.svg?logo=opencv&logoColor=white)
-![OAuth 2.0](https://img.shields.io/badge/OAuth_2.0-Authorization-3b5998)
-![JWT](https://img.shields.io/badge/JWT-Authentication-d63384?logo=jsonwebtokens&logoColor=white)
-![React](https://img.shields.io/badge/React-Frontend_UI-61dafb?logo=react&logoColor=white)
+![Modal](https://img.shields.io/badge/Modal-Serverless_GPU-7fee64)
+![LanceDB](https://img.shields.io/badge/LanceDB-Vector_DB-ff6f00)
+![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React_19-Frontend-61dafb?logo=react&logoColor=white)
+![Netlify](https://img.shields.io/badge/Netlify-Hosting-00C7B7?logo=netlify&logoColor=white)
 
+ChronoSearch "watches" your videos. Every uploaded video is sampled twice per second, each
+frame is turned into a vector by Google's **SigLIP** vision-language model, and those vectors
+are stored in **LanceDB**. You can then type what you are looking for ("a man holding a
+sword in the snow", "red car at night") and jump straight to the second it happens.
 
-ChronoSearch is a next-generation video platform that goes beyond traditional keyword matching. While standard platforms only look at titles and tags, ChronoSearch uses **Computer Vision** and **Vector Embeddings** to "watch" and understand every frame of your video.
+> The backend scales to zero when idle. The **first** request after a few idle minutes can take
+> 30–60 seconds while a GPU container starts; after that, searches are fast.
 
+## Demo: searching *"jon snow"*
 
-
-
-# DEMO ~ searching *'jon snow'* test.gif
-
-![ChronoSearch Dashboard](tst.gif)
----
-
-## 🔎 One Platform, Two Search Engines
-
-Most video platforms only let you find *files*. ChronoSearch lets you find *moments*. We have engineered two distinct search modes to handle both needs:
-
-### 1. Global Search
-
-* **What it does:** Searches across your entire video library.
-* **How it works:** Matches your query against video **Titles** and **Tags** using hybrid semantic search.
-* **Use Case:** *"Show me all my travel vlogs from 2024."*
-
-### 2. Deep Search 
-
-* **What it does:** Searches **inside** a single video, frame-by-frame.
-* **How it works:** Uses Google's **SigLIP** model to convert visual frames into vectors. It ignores text and looks for **visual concepts**.
-* **Use Case:** *"Go to the exact second where I was holding a coffee cup."*
+![ChronoSearch demo](tst.gif)
 
 ---
 
-## Key Features
+## Two search engines in one app
 
-* **Visual AI Indexing:** Automatically extracts frames at 1 FPS and converts them into 1152-dimensional semantic vectors.
-* **Serverless Backend:** Built on **Modal**, scaling high-performance T4 GPUs on-demand to process uploads in parallel.
-* **Hybrid Search Architecture:** Seamlessly merges metadata results (Global) with computer vision results (Deep).
-* **Smart Streaming:** Custom-built video streaming supporting **Range Requests (206 Partial Content)** for zero-latency seeking.
-* **Auto-Healing Index:** Built-in "Repair" functionality to fix synchronization issues or missing frames automatically.
-* **Secure Auth:** Integrated Google OAuth + JWT for secure user management and private video storage.
+### 1. Global search (top search bar)
+* Searches your **whole library**: every public video plus your own private ones.
+* Combines **keyword matching on titles and tags** (handles plurals, small typos and filler
+  words like "show me") with **visual matching on every indexed frame**.
+* One result per video, labelled **Title Match**, **Visual Match** or **Title + Visual Match**.
+  Visual matches show the moment (e.g. *"at 3:20"*) and open the player right there.
 
----
-
-## Tech Stack
-
-### **Frontend**
-
-* **React + Vite:** High-performance reactive UI.
-* **Tailwind CSS:** Modern, responsive styling.
-* **Axios:** Optimized API communication.
-
-### **Backend (The Core)**
-
-* **Python & FastAPI:** High-speed REST API.
-* **Modal:** Serverless Cloud Platform (GPU orchestration & Persistent Storage).
-* **LanceDB:** Vector Database for billion-scale similarity search.
-* **OpenCV:** Advanced frame extraction and resizing logic.
-* **HuggingFace Transformers:** Powered by the `google/siglip-so400m-patch14-384` model.
+### 2. Deep search (inside a video)
+* Searches **one video** frame by frame.
+* Returns distinct **moments** with a time range (e.g. `3:20 (3:20–3:22)`) and a confidence
+  label: **Strong match**, **Possible match** or **Weak**.
+* If nothing really matches, it says so instead of showing 10 random frames.
 
 ---
 
-## Architecture
+## Key features
 
-1. **Extraction:** When a video is uploaded, the backend intelligently extracts frames (Smart 1 FPS sampling).
-2. **Vectorization:** Each frame is passed through the **SigLIP AI model** to generate a semantic embedding.
-3. **Indexing:** Vectors are stored in **LanceDB** on a persistent Cloud Volume for sub-millisecond retrieval.
-4. **Search Routing:**
-* `/search_global`: Scans Titles & Tags index.
-* `/search_video`: Scans Frame Vector index using Cosine Similarity.
-
-
+* **Exact timestamps:** frame times come from the video decoder, so they are correct for
+  23.976 / 25 / 29.97 fps and variable-frame-rate phone videos.
+* **Calibrated confidence:** scores use SigLIP's own probability,
+  `sigmoid(cosine × logit_scale + logit_bias)`, so "87%" actually means something.
+* **Serverless GPU backend on Modal:** T4 GPUs start on demand; many uploads index in parallel.
+* **Safe parallel uploads:** a single index writer means uploads can never overwrite each other's index.
+* **Private videos stay private:** search only returns public videos and your own.
+* **Repair button:** re-indexes a video if anything went wrong.
+* **Auth:** username/password with bcrypt + JWT; Google sign-in is optional.
+* **Video streaming** with seeking support.
 
 ---
 
-## Project Structure
+## Tech stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 19, Vite 7, Tailwind CSS, Axios, React Router |
+| Hosting (frontend) | Netlify |
+| API | Python, FastAPI |
+| Compute & storage | Modal (serverless T4 GPUs, persistent Volume, Secrets) |
+| AI model | `google/siglip-so400m-patch14-384` on GPU, `google/siglip-base-patch16-224` in CPU mode |
+| Vector database | LanceDB 0.24.2 |
+| Metadata | SQLite (users, videos, status) on the Modal Volume |
+| Video | OpenCV (frame sampling), ffmpeg |
+| Auth | bcrypt, JWT (python-jose), Google OAuth (optional) |
+
+---
+
+## How it works
+
+```mermaid
+flowchart LR
+    U[Browser<br/>React on Netlify] -->|upload / search| API[FastAPI on Modal<br/>chrono_api]
+    API -->|save file| VOL[(Modal Volume<br/>videos + LanceDB + SQLite)]
+    API -->|spawn| IDX[VideoIndexer<br/>T4 GPU]
+    IDX -->|2 frames/s → SigLIP vectors| W[IndexWriter<br/>single writer]
+    W --> VOL
+    API -->|query| S[VideoSearcher<br/>T4 GPU]
+    S -->|nearest frames| VOL
+    API -->|users, titles, status| DB[Database<br/>SQLite]
+    DB --> VOL
+```
+
+**Indexing (on upload)**
+1. The API saves the video to the Modal Volume and records it in SQLite as `processing`.
+2. `VideoIndexer` samples **2 frames per second** with OpenCV, keeping each frame's real timestamp.
+3. Frames go through SigLIP in batches of 32 (fp16 on the T4) → 1152-dimensional vectors.
+4. `IndexWriter` (one container at a time) replaces that video's rows in LanceDB.
+5. Status becomes `completed` (or `failed`, which the Repair button can fix).
+
+**Deep search**
+1. The query is lower-cased and embedded together with the variant *"a photo of …"*.
+2. LanceDB returns the 300 nearest frames **of that video only** (pre-filtered).
+3. Hits within 3 s of each other are merged into one moment (max 20 s long).
+4. Each moment gets a calibrated confidence; weak results far below the best one are dropped.
+
+**Global search**
+1. SQLite gives the videos you may see (public + your own, fully indexed).
+2. Titles/tags get a keyword score; frames give the best visual match per video.
+3. Both scores are on a 0–1 scale and merged into one ranking.
+
+---
+
+## API endpoints
+
+All routes are under `/api` on your Modal URL. Interactive docs: `https://<your-url>/docs`.
+
+| Method | Route | What it does |
+|---|---|---|
+| POST | `/api/register` | Create an account (username 3+ chars, password 6+) |
+| POST | `/api/login` | Log in, returns a JWT |
+| POST | `/api/google_login` | Log in with a verified Google ID token |
+| POST | `/api/upload` | Upload a video (login required), starts indexing |
+| GET | `/api/feed` | Latest public videos |
+| GET | `/api/my_videos` | Your videos (login required) |
+| GET | `/api/status?video_id=` | `processing` / `completed` / `failed` |
+| GET | `/api/search?query=&video_id=` | Deep search inside one video |
+| GET | `/api/search_global?query=` | Library search (titles, tags, frames) |
+| GET | `/api/stream/{video_id}` | Stream a video |
+| POST | `/api/reindex?video_id=` | Repair / re-index a video (5-minute cool-down) |
+
+---
+
+## Project structure
 
 ```text
 ├── backend/
-│   ├── main.py             # Entry point (Run this to deploy)
-│   ├── AI.py               # Modal App Orchestrator (GPU Logic)
-│   ├── api.py              # FastAPI Routes (Stream, Upload, Search)
-│   ├── auth.py             # Authentication Logic (JWT & Google Auth)
-│   ├── common.py           # Configuration & Modal Image Definition
-│   ├── database.py         # SQL Database Models (Users, Videos)
-│   ├── extract.py          # Module: Frame Extraction (OpenCV)
-│   ├── index.py            # Module: Vector Indexing (SigLIP + LanceDB)
-│   ├── search.py           # Module: Deep Visual Search Logic
-│   └── search_global.py    # Module: Hybrid Global Search Logic
-│
+│   ├── main.py             # Entry point: modal deploy -m backend.main
+│   ├── api.py              # FastAPI routes
+│   ├── AI.py               # Modal classes: VideoIndexer, IndexWriter, VideoSearcher
+│   ├── auth.py             # bcrypt, JWT, Google token verification
+│   ├── common.py           # Modal image, volume, secret, app
+│   ├── config.py           # All settings: GPU/CPU switch, search tuning
+│   ├── database.py         # SQLite (users, videos) – single container
+│   ├── encoder.py          # SigLIP wrapper (loaded once per container)
+│   ├── extract.py          # Frame sampling with real timestamps (OpenCV)
+│   ├── index.py            # Embedding + LanceDB writes
+│   ├── ranking.py          # Moments, confidence, keyword + visual merge
+│   ├── search.py           # Deep search
+│   ├── search_global.py    # Library-wide visual search
+│   └── reset.py            # reindex_all / nuke_system
 ├── frontend/
 │   ├── src/
-│   │   ├── components/
-│   │   │   ├── Navbar.jsx        # Navigation & Search Bar
-│   │   │   └── UploadModal.jsx   # Video Upload UI
-│   │   ├── pages/
-│   │   │   ├── Home.jsx          # Main Feed & Global Search Results
-│   │   │   ├── VideoPlayer.jsx   # Video Streaming & Deep Search UI
-│   │   │   ├── Profile.jsx       # User Dashboard & My Videos
-│   │   │   └── Login.jsx         # Google Authentication Page
-│   │   ├── services/
-│   │   │   └── api.js            # Axios Setup & API Calls
-│   │   ├── App.jsx               # Main Routing Layout
-│   │   └── main.jsx              # React Entry Point
-│   ├── public/                   # Static Assets
-│   └── vite.config.js            # Frontend Proxy Configuration
-│
-└── .gitignore             # Git Ignore Rules
-
+│   │   ├── components/     # Navbar, UploadModal
+│   │   ├── pages/          # Home, VideoPlayer, Profile, Login
+│   │   ├── services/api.js # Axios client + backend URL
+│   │   ├── App.jsx
+│   │   └── main.jsx        # Entry point + error screen
+│   ├── public/_redirects   # Netlify: send every route to index.html
+│   ├── .env                # VITE_API_URL=<your Modal URL> (not committed)
+│   └── vite.config.js
+├── tests/
+│   └── test_search_logic.py  # Timestamp + ranking tests (no GPU needed)
+├── FIXES.md                # What was fixed in the search engine and why
+└── README.md
 ```
 
 ---
 
-## Setup & Installation
+## Run it yourself
 
-### 1. Clone the Repository
+The commands below use `python -m modal …`, which works on Windows, macOS and Linux even if
+the `modal` command is not on your PATH.
 
+### Prerequisites
+* **Python 3.10+** (3.11 tested) and **Node.js 20.19+**
+* A **[Modal](https://modal.com) account**. GPU functions need a payment method on the
+  account; without one, use CPU mode (see [Configuration](#configuration)).
+* **ffmpeg** (only for the tests and for making test videos)
+
+### 1. Get the code
 ```bash
 git clone https://github.com/kishan705/Chronosearch_2.O.git
 cd Chronosearch_2.O
-
 ```
 
-### 2. Backend Setup (Modal)
-
-You need a [Modal.com](https://modal.com) account.
-
+### 2. Install the local Python packages
+`modal deploy` loads the backend on your computer before uploading it, so these must be installed locally:
 ```bash
-# Install Modal
-pip install modal
-
-# Authenticate
-modal setup
-
-# Deploy the App
-modal deploy backend/main.py
-or
-modal deploy -m backend.main
-
+python -m pip install modal fastapi python-multipart bcrypt "python-jose[cryptography]"
+python -m modal setup          # log in to Modal in the browser
 ```
 
-*After deployment, copy the **URL** provided by Modal (ending in `.modal.run`).*
+### 3. Create the login secret (once)
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+python -m modal secret create chronosearch-secrets CHRONO_JWT_SECRET=<the string printed above>
+```
+To also enable Google sign-in, add `GOOGLE_CLIENT_ID=<your client id>` to that command.
+To change a secret later, add `--force`. **Never commit or share the secret.**
 
-### 3. Frontend Setup
+### 4. Deploy the backend
+```bash
+python -m modal deploy -m backend.main
+```
+The first deploy takes 10–15 minutes (it downloads the model into the image). At the end,
+copy the URL after `chrono_api =>`; it looks like
+`https://<your-modal-username>--chronosearch-v8-golden-chrono-api.modal.run`.
+Check it: `https://<your-url>/api/feed` should show `[]`.
 
+### 5. Connect the frontend
+Create `frontend/.env` with **your** URL (no `/` at the end, no `/api`):
+
+```powershell
+# Windows PowerShell
+Set-Content -Path frontend\.env -Value "VITE_API_URL=https://<your-url>.modal.run" -Encoding ascii
+```
+```bash
+# macOS / Linux
+echo "VITE_API_URL=https://<your-url>.modal.run" > frontend/.env
+```
+Optional: add `VITE_GOOGLE_CLIENT_ID=<your client id>` on a second line for the Google button.
+
+### 6. Run the frontend locally
 ```bash
 cd frontend
 npm install
-
-```
-
-**Configure Environment Variables:**
-Create a `.env` file in the `frontend/` folder. This is **required** to connect the frontend to your backend.
-
-```bash
-# frontend/.env
-VITE_API_URL=https://REPLACE_WITH_YOUR_MODAL_URL.modal.run
-VITE_GOOGLE_CLIENT_ID=REPLACE_WITH_YOUR_GOOGLE_CLIENT_ID
-
-```
-
-**Run the UI:**
-
-```bash
 npm run dev
-
 ```
+Open `http://localhost:5173`, register and upload a video. Vite only reads `.env` when it
+starts, so restart `npm run dev` after editing it.
+
+### 7. Deploy the frontend to Netlify
+```bash
+cd frontend
+npm run build                  # creates frontend/dist with your backend URL built in
+```
+1. Log in at [netlify.com](https://netlify.com) (sites dropped without an account are deleted).
+2. Open [app.netlify.com/drop](https://app.netlify.com/drop) and drag the **`frontend/dist`** folder onto it.
+3. You get a `*.netlify.app` link. Rename it under **Site configuration → Change site name**.
+
+`frontend/public/_redirects` (`/*  /index.html  200`) is included in the build so links like
+`/video/<id>` work when opened directly. If it's missing, create it before building.
+
+**Updating later**
+* Frontend: `npm run build`, then drag the new `dist` folder onto your site's **Deploys** page.
+* Backend: `python -m modal deploy -m backend.main`. Videos, accounts and the index are kept.
+
+---
+
+## Configuration
+
+Everything is in `backend/config.py`. After a change, redeploy the backend.
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `USE_GPU` | `True` | `True`: T4 GPU + large SigLIP model. `False`: CPU + small model (works without a card on Modal, less accurate). After switching, run `reindex_all`. |
+| `SAMPLE_FPS` | `2.0` | Frames indexed per second of video (needs `reindex_all` after a change) |
+| `MIN_CONFIDENCE` | `0.01` | Below this, a frame is not a match (deep search) |
+| `STRONG_CONFIDENCE` | `0.30` | Above this, a moment is shown as "Strong match" |
+| `RELATIVE_LOGIT_MARGIN` | `4.0` | Drops weak results far below the best one |
+| `MOMENT_WINDOW_S` | `3.0` | Hits closer than this are one moment |
+| `GLOBAL_MIN_VISUAL_CONFIDENCE` | `0.02` | Minimum confidence for a Visual Match in global search |
+| `MIN_KEYWORD_SCORE` | `0.5` | Share of query words that must match a title/tags |
+
+**Tuning tip:** every search result includes `cosine` and `confidence`. Open the browser's
+DevTools → Network, run searches where you know the answer, and set the thresholds between
+the scores of right and wrong results.
+
+---
+
+## Maintenance commands
+
+```bash
+python -m modal app logs chronosearch-v8-golden        # live logs (indexing, errors)
+python -m modal run -m backend.reset::reindex_all      # re-index every video
+python -m modal run -m backend.reset::nuke_system      # DELETE all videos, users and the index
+python tests/test_search_logic.py                      # local tests (needs ffmpeg, opencv-python, numpy, pillow)
+```
+
+---
+
+## Troubleshooting
+
+| Problem | Cause | Fix |
+|---|---|---|
+| `'modal' is not recognized` | Modal's scripts folder is not on PATH | Use `python -m modal …` |
+| `No module named 'bcrypt'` (or fastapi, jose) on deploy | Local packages missing | Step 2 of [Run it yourself](#run-it-yourself) |
+| `Could not find a version that satisfies lancedb==0.5.7` | Old pin, no longer installable | Use the current `common.py` (LanceDB 0.24.2) |
+| `Please add a payment method to use T4 GPU functions` | GPUs need a card on Modal | Add a card, or set `USE_GPU = False` |
+| Deploy fails: secret `chronosearch-secrets` not found | Secret not created | Step 3 |
+| `crash-looping` / `Function has 2 dependencies but container got 3` | A Modal object defined under a local-only condition | Keep `SECRETS = [modal.Secret.from_name("chronosearch-secrets")]` unconditional |
+| Login page: "Backend URL missing" | `frontend/.env` empty or not loaded | Step 5, then restart `npm run dev` or rebuild |
+| "Can't reach the backend" | Wrong URL, backend not deployed, or backend crashing | Open `/api/feed`; check the Modal logs |
+| No `POST` lines in the Modal logs | Frontend talks to a different server | `.env` must contain **your** Modal URL |
+| Video stuck on "AI Processing" | Indexing failed | Check logs for `❌ Indexing failed`; press **Repair** |
+| `No frames could be decoded` | Codec OpenCV can't read (some HEVC .mov) | `ffmpeg -i in.mov -c:v libx264 -pix_fmt yuv420p out.mp4` |
+| First search takes 30–60 s | Container cold start | Normal after a few idle minutes |
+
+---
+
+## Cost and safety
+
+* Modal's Starter plan includes monthly free credits. Set a **Workspace budget** on
+  Modal's **Usage & Billing** page so a public demo can never cost more than you expect.
+* Anyone with the live link can register and upload, and every upload uses GPU time.
+* Containers shut down after a few idle minutes, so an idle app costs nothing.
+
+---
+
+## Known limitations & roadmap
+
+- [ ] **Speech search:** index Whisper transcripts so you can search what is *said*.
+- [ ] **On-screen text:** OCR for slides, signs and subtitles.
+- [ ] **Private streaming:** stream URLs are not access-controlled yet (signed, expiring URLs).
+- [ ] **Upload limits:** file size/type limits and rate limiting.
+- [ ] **Wide frames:** SigLIP squashes 16:9 frames to a square; extra crops would find small objects at the edges.
+- [ ] **Synonyms in titles:** a sentence-embedding model for title/tag matching.
+- [ ] **Scaling:** the index writer copies LanceDB on every write; fine for hundreds of videos, slow for thousands.
+
+See [FIXES.md](FIXES.md) for the full list of search-engine bugs that were fixed (timestamp
+drift, LanceDB post-filtering, lost index writes, broken global ranking) and why.
 
 ---
 
 ## License
 
-This project is open-source and available under the **MIT License**.
+Open-source under the **MIT License**.
 
 Built with ❤️ by [Kishan Amaliya](https://github.com/kishan705)
