@@ -23,9 +23,7 @@ sword in the snow", "red car at night") and jump straight to the second it happe
 > The backend scales to zero when idle. The **first** request after a few idle minutes can take
 > 30–60 seconds while a GPU container starts; after that, searches are fast.
 
-## Demo: searching *"jon snow"*
 
-![ChronoSearch demo](ss1.png)
 ![ChronoSearch demo](ss2.png)
 ![ChronoSearch demo](ss3.png)
 
