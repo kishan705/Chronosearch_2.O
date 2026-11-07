@@ -25,7 +25,9 @@ sword in the snow", "red car at night") and jump straight to the second it happe
 
 ## Demo: searching *"jon snow"*
 
-![ChronoSearch demo](tst.gif)
+![ChronoSearch demo](ss1.png)
+![ChronoSearch demo](ss2.png)
+![ChronoSearch demo](ss3.png)
 
 ---
 
