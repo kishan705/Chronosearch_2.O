@@ -15,14 +15,73 @@
 ![React](https://img.shields.io/badge/React_19-Frontend-61dafb?logo=react&logoColor=white)
 ![Netlify](https://img.shields.io/badge/Netlify-Hosting-00C7B7?logo=netlify&logoColor=white)
 
-ChronoSearch "watches" your videos. Every uploaded video is sampled twice per second, each
-frame is turned into a vector by Google's **SigLIP** vision-language model, and those vectors
-are stored in **LanceDB**. You can then type what you are looking for ("a man holding a
-sword in the snow", "red car at night") and jump straight to the second it happens.
+ChronoSearch is a search engine for what happens *inside* videos. Type what you're looking for
+in plain words and it takes you to the second it appears on screen.
 
-> The backend scales to zero when idle. The **first** request after a few idle minutes can take
-> 30–60 seconds while a GPU container starts; after that, searches are fast.
+---
 
+## The problem
+
+Video is the hardest kind of file to search. A normal search box can only look at a video's
+title, tags and description. People write those, they're often short or missing, and they never
+say what happens at minute 14. To find the moment where "a red car drives past at night", you
+have to remember which video it was in and then drag through the timeline by hand. With a
+library of long recordings (lectures, vlogs, raw footage, security clips) that means hours of
+watching.
+
+Questions like these have no quick answer today:
+
+* "Which of my videos has a dog running on a beach?"
+* "Where in this one-hour recording does someone hold a sword in the snow?"
+* "Jump to the part of this lecture where the whiteboard is full of diagrams."
+
+Searching inside the video itself is hard for a few reasons:
+
+* **A video is thousands of pictures.** Ten minutes at 30 frames per second is 18,000 frames.
+  Checking every one is slow and wasteful, so you have to sample frames and still land on the
+  right second.
+* **The query is words; the video is pixels.** Keyword search can't see what's in a picture.
+  You need a model that understands both text and images.
+* **Timestamps drift.** Phones record at a variable frame rate, and many videos run at 29.97 fps
+  rather than 30. Working out the time as "frame number ÷ fps" puts you at the wrong second.
+* **Raw AI scores are hard to read.** A naive search always returns its top 10 frames, even when
+  none of them match, and the scores don't tell you which ones to trust.
+* **One moment gives many hits.** Neighbouring frames look almost the same, so a single scene
+  can fill the whole results list unless the hits are grouped.
+* **GPUs are expensive.** The AI model needs a GPU, and keeping one running all day costs money
+  even when nobody is searching.
+
+## What ChronoSearch does
+
+1. **Samples each video** twice per second and keeps each frame's real timestamp from the
+   video decoder, so jumps land on the right second.
+2. **Turns every frame into numbers.** Google's **SigLIP** is a vision-language model, trained
+   on images with their captions. It turns each frame into a list of numbers (a **vector**) that
+   describes what's in it. Your search text gets turned into numbers the same way, so
+   *"red car at night"* ends up close to frames of red cars at night.
+3. **Stores the vectors in LanceDB**, a database built for finding the closest vectors quickly.
+4. **Searches and groups.** It finds the frames closest to your query and merges neighbouring
+   hits into **moments** with a time range. Each moment gets a confidence score, and if nothing
+   really matches it says so instead of showing random frames.
+5. **Mixes in titles and tags** for library-wide search, so you can find a video by its name or
+   by what's in it.
+6. **Runs the AI on demand.** GPUs on Modal start when there's work to do and shut down when the
+   app is idle, so an unused app costs nothing.
+
+> Because the backend shuts down when idle, the **first** request after a few idle minutes can
+> take 30–60 seconds while a GPU container starts; after that, searches are fast.
+
+### Key terms
+
+| Term | Meaning |
+|---|---|
+| Frame | One still picture from a video. ChronoSearch indexes 2 per second |
+| Vision-language model | An AI model trained on images with captions, so it can compare text with pictures |
+| Vector (embedding) | The list of numbers the model gives a frame or a query (1152 numbers with the default GPU model). Similar content, similar numbers |
+| Cosine similarity | How close two vectors are; higher means more alike |
+| Confidence | SigLIP's own probability that a frame matches your text, worked out from the cosine score |
+| Moment | Matching frames within 3 seconds of each other, shown as one result with a time range |
+| Cold start | The 30–60 second wait while a GPU container starts after the app has been idle |
 
 ![ChronoSearch demo](ss2.png)
 ![ChronoSearch demo](ss3.png)
@@ -54,7 +113,8 @@ sword in the snow", "red car at night") and jump straight to the second it happe
   `sigmoid(cosine × logit_scale + logit_bias)`, so "87%" actually means something.
 * **Serverless GPU backend on Modal:** T4 GPUs start on demand; many uploads index in parallel.
 * **Safe parallel uploads:** a single index writer means uploads can never overwrite each other's index.
-* **Private videos stay private:** search only returns public videos and your own.
+* **Private videos stay out of other people's searches:** search only returns public videos and
+  your own. (Stream links aren't access-controlled yet; see the roadmap.)
 * **Repair button:** re-indexes a video if anything went wrong.
 * **Auth:** username/password with bcrypt + JWT; Google sign-in is optional.
 * **Video streaming** with seeking support.
