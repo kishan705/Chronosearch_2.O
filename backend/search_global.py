@@ -5,20 +5,25 @@ def search_global_unified(query, db_path, frame_table_name):
     import torch
     from transformers import AutoProcessor, AutoModel
     import pandas as pd
+    from .search import match_confidence, MIN_CONFIDENCE
 
     """
     Hybrid Search Strategy:
-    1. Search Metadata (Titles/Tags)
-    2. Search Visual Content (Frames)
+    1. Search Metadata (Titles/Tags)  -> ranked by cosine similarity
+    2. Search Visual Content (Frames) -> cosine similarity + SigLIP sigmoid confidence
     3. Merge and Rank results
     """
     META_TABLE = "video_metadata_index"
-    
+
     # --- 1. LOAD MODEL ---
-    device = "mps" if torch.mps.is_available() else "cpu"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     # We load the model once to vectorise the query
     model = AutoModel.from_pretrained("google/siglip-so400m-patch14-384").to(device)
     processor = AutoProcessor.from_pretrained("google/siglip-so400m-patch14-384")
+
+    # SigLIP's two learned numbers that turn a text-image similarity into a probability
+    logit_scale = model.logit_scale.item()
+    logit_bias = model.logit_bias.item()
 
     # --- 2. VECTORIZE QUERY ---
     print(f"🌍 Hybrid Search for: '{query}'")
@@ -35,22 +40,25 @@ def search_global_unified(query, db_path, frame_table_name):
     # ==========================================
     # STRATEGY A: METADATA SEARCH (Titles)
     # ==========================================
+    # Title search compares TEXT with TEXT. SigLIP's sigmoid was trained on TEXT-IMAGE pairs,
+    # so a confidence here would not mean anything: titles keep using cosine similarity.
     if META_TABLE in db.table_names():
         tbl_meta = db.open_table(META_TABLE)
         meta_hits = tbl_meta.search(query_vector).metric("cosine").limit(20).to_pandas()
-        
+
         for _, row in meta_hits.iterrows():
             score = 1 - row['_distance']
             if score < 0.10: continue # Skip strict garbage
-            
+
             # Boost Title Matches (Titles are strong signals)
             # We multiply by 1.2 to give preference to metadata matches
-            boosted_score = score * 1.2 
-            
+            boosted_score = score * 1.2
+
             final_candidates[row['video_id']] = {
                 "video_id": row['video_id'],
                 "title": row['title'],
                 "score": boosted_score,
+                "confidence": None, # no visual match yet
                 "match_type": "Title Match",
                 "timestamp": None, # Jump to start
                 "preview_url": f"/data/videos/{row['video_id']}.mp4"
@@ -61,17 +69,21 @@ def search_global_unified(query, db_path, frame_table_name):
     # ==========================================
     if frame_table_name in db.table_names():
         tbl_frames = db.open_table(frame_table_name)
-        
+
         # Search across ALL frames of ALL videos
         frame_hits = tbl_frames.search(query_vector).metric("cosine").limit(50).to_pandas()
-        
+
         for _, row in frame_hits.iterrows():
             vid_id = row['video_id']
-            raw_score = 1 - row['_distance']
-            
+            raw_score = 1 - row['_distance']   # cosine similarity
+
             #  Threshold (0.15)
             if raw_score < 0.15: continue
-            
+
+            # Sigmoid confidence: SigLIP's probability that this frame matches the text
+            confidence = match_confidence(raw_score, logit_scale, logit_bias)
+            if confidence < MIN_CONFIDENCE: continue
+
             # Check if we already found this video via Title
             if vid_id in final_candidates:
                 # If visual score is SUPER high, maybe update the snippet?
@@ -79,6 +91,10 @@ def search_global_unified(query, db_path, frame_table_name):
                 # We slightly boost the existing score because it matched BOTH.
                 final_candidates[vid_id]['score'] += 0.05
                 final_candidates[vid_id]['match_type'] += " + Visuals"
+                # Keep the best frame's confidence for this video
+                best = final_candidates[vid_id]['confidence']
+                if best is None or confidence > best:
+                    final_candidates[vid_id]['confidence'] = round(confidence, 4)
             else:
                 # New candidate found ONLY via visual
                 # We only keep the BEST frame for this video (Deduplication)
@@ -87,6 +103,7 @@ def search_global_unified(query, db_path, frame_table_name):
                         "video_id": vid_id,
                         "title": "Untitled (Visual Match)", # We might not have title here easily
                         "score": raw_score,
+                        "confidence": round(confidence, 4),
                         "match_type": "Visual Match",
                         "timestamp": row['timestamp'], # Jump to this moment
                         "preview_url": f"/data/videos/{vid_id}.mp4"
@@ -94,13 +111,15 @@ def search_global_unified(query, db_path, frame_table_name):
 
     # --- 4. FORMAT & SORT ---
     results_list = list(final_candidates.values())
-    
+
     # Normalize scores for display (0.0 - 100.0)
     for res in results_list:
         # Cap at 100, make small scores look readable
         res['score_display'] = min(100, round(res['score'] * 100, 1))
-        
+        # Confidence in % for visual matches (None for title-only matches)
+        res['confidence_display'] = None if res['confidence'] is None else round(res['confidence'] * 100, 1)
+
     # Sort by Score (Highest First)
     results_list.sort(key=lambda x: x['score'], reverse=True)
-    
+
     return results_list
