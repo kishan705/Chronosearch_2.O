@@ -62,7 +62,9 @@ is made of), not just read the title.
 1. Your search text (for example *"red car at night"*) goes through the **same SigLIP model**
    and becomes a list of 1,152 numbers too.
 2. LanceDB finds the stored frames whose numbers are **closest** to your search's numbers.
-3. You get back those frames with their **time in the video** and a **score**.
+3. You get back those frames with their **time in the video** and a **confidence**: how likely
+   SigLIP thinks each frame matches your text, from 0 to 1 (see
+   [How the confidence is calculated](#how-the-confidence-is-calculated)).
 
 ### Key ideas in plain words
 
@@ -71,7 +73,8 @@ is made of), not just read the title.
 | **Frame** | One still picture from a video. |
 | **Embedding** | A list of numbers that describes the meaning of a picture or a sentence. Think of it as an address on a map of meanings: things that mean similar things have nearby addresses. |
 | **SigLIP** | An AI model from Google that learned from millions of pictures with captions. Because of that, the picture of a red car and the text "red car" get similar numbers. This repo uses `google/siglip-so400m-patch14-384`. |
-| **Cosine similarity** | A way to measure how close two embeddings are. Higher means more alike. |
+| **Cosine similarity** | A way to measure how close two embeddings are (the angle between them). Higher means more alike. |
+| **Confidence** | SigLIP's own estimate, from 0 to 1, of how likely a frame matches your text. It is calculated from the cosine similarity with a formula SigLIP learned during training. |
 | **Vector database (LanceDB)** | A database that is good at answering "which stored items are most similar to this one?" |
 | **Modal** | A cloud service that runs our Python code on GPUs only when needed and shuts them down when idle. |
 | **Cold start** | The wait while Modal starts a GPU machine after the app has been idle. |
@@ -86,18 +89,73 @@ You type a description while watching a video. The app:
 
 - turns your text into an embedding,
 - asks LanceDB for the **10 closest frames**, then keeps only the ones from this video,
-- shows each match with its **time** (click it to jump there) and a **score bar**.
+- turns each frame's similarity into a **confidence** (below),
+- shows each match with its **time** (click it to jump there) and a **confidence bar**.
 
 What to expect:
 
-- **The score is the similarity × 100.** SigLIP's similarity numbers are naturally small, so
-  even a good match often shows a low score (for example 10–20). It is not a percentage of
-  certainty.
+- **The bar shows the confidence in %.** It is SigLIP's estimate that the frame matches your
+  text. Results are sorted by confidence, highest first.
+- **Good matches can still show a fairly low confidence** (for example 10–40%). SigLIP learned
+  its confidence on its own training pictures, not on your videos, so compare results within
+  one search rather than reading the number as an exact chance.
 - **You may get fewer than 10 results, or none,** even when the video does contain the thing.
   That's because the app first picks the 10 closest frames from *all* videos and only then
   keeps the ones from your video. If other videos have closer matches, yours get pushed out.
   (See [Known limitations](#known-limitations).)
 - **Times are rounded to whole seconds,** and may drift on some videos (explained below).
+
+#### How the confidence is calculated
+
+The code is in `backend/search.py` (`match_confidence`). It takes two steps.
+
+**Step 1: cosine similarity.** LanceDB returns a cosine *distance* for each frame. The
+similarity is:
+
+```text
+similarity = 1 − cosine_distance
+```
+
+**Step 2: turn the similarity into a confidence** with SigLIP's own learned numbers:
+
+```text
+confidence = sigmoid( exp(logit_scale) × similarity + logit_bias )
+
+sigmoid(z) = 1 / (1 + e^(−z))
+```
+
+- `logit_scale` and `logit_bias` are two numbers the SigLIP model learned during training. The
+  code reads them from the model (`model.logit_scale` and `model.logit_bias`). `logit_scale` is
+  stored as a logarithm, which is why the formula uses `exp(logit_scale)`.
+- **Why this works:** SigLIP was trained on pictures with captions. For every picture-caption
+  pair, it had to answer "do these two belong together?" with a number between 0 and 1, using
+  exactly this formula. So the formula gives SigLIP's own answer for your text and a frame.
+- **`sigmoid`** squeezes any number into the range 0 to 1: large positive numbers become
+  close to 1, large negative numbers close to 0, and 0 becomes 0.5.
+
+An example with made-up round numbers (scale 100, bias −12; the real model has its own values):
+
+| Similarity | 100 × similarity − 12 | Confidence |
+|---|---|---|
+| 0.15 | 3 | 0.95 |
+| 0.12 | 0 | 0.50 |
+| 0.10 | −2 | 0.12 |
+| 0.05 | −7 | 0.001 |
+
+A small difference in similarity becomes a clear difference in confidence.
+
+**Why use the confidence and not just the similarity?** Both give the **same order** of results,
+because a higher similarity always means a higher confidence. The confidence is better for
+two other things:
+
+- **It is easy to read.** "0.92" means "very likely a match". A similarity of "0.13" means
+  nothing on its own.
+- **It allows a cut-off.** `MIN_CONFIDENCE` in `backend/search.py` hides frames below a chosen
+  confidence. It is `0.0` (off) by default; raise it (for example to 0.05 or 0.1) after
+  trying some searches on your own videos.
+
+Each search result from the API contains the `similarity`, the `confidence` (0 to 1) and the
+`score` (the confidence × 100, used for the bar).
 
 ### 2. Search the whole library (search bar at the top)
 
@@ -107,16 +165,22 @@ You type a description on the home page. The app combines two searches:
   (the 20 closest are checked). Matches above a small threshold get a little bonus, because
   titles are a strong signal. These show as **"Title Match"**.
 - **What's in the video:** your text is compared with frames from all videos
-  (the 50 closest are checked, and frames scoring below 0.15 are skipped). The best frame
-  of a video sets its score and time. These show as **"Visual Match"** with the time of that
-  frame. Their title shows as "Untitled (Visual Match)", because this step doesn't look up
+  (the 50 closest are checked, and frames with a similarity below 0.15 are skipped). The best
+  frame of a video sets its score and time. These show as **"Visual Match"** with the time of
+  that frame. Their title shows as "Untitled (Visual Match)", because this step doesn't look up
   the real title.
+- **Visual matches also get a confidence,** with the same formula as above. The API returns it
+  as `confidence` (0 to 1) and `confidence_display` (%); the home page doesn't show it yet.
+  **Title matches keep using similarity:** the confidence formula was learned for *text and
+  picture* pairs, and title search compares *text with text*, so a confidence there would not
+  mean anything.
 - **Each extra matching frame from the same video adds a small bonus (+0.05)** and adds
   "+ Visuals" to the label again. So a video that matched by title and in two frames shows as
   **"Title Match + Visuals + Visuals"**. The label is meant to appear once; this is a known bug.
 
 Results are sorted by score, one result per video. The title search uses the same AI
-model on the title text (it looks for similar meaning, not exact words).
+model on the title text (it looks for similar meaning, not exact words). Library search runs
+on the T4 GPU.
 
 ---
 
@@ -190,8 +254,8 @@ Every GPU machine shuts down after **5 minutes** with no work, so an idle app co
 │   ├── AI.py              # The GPU workers: VideoIndexer (upload) and VideoSearcher (search)
 │   ├── extract.py         # Takes 2 frames per second out of a video (OpenCV)
 │   ├── index.py           # Turns frames + title/tags into SigLIP numbers and saves them in LanceDB
-│   ├── search.py          # Search inside one video
-│   ├── search_global.py   # Search the whole library (titles/tags + frames)
+│   ├── search.py          # Search inside one video, and the confidence formula (match_confidence)
+│   ├── search_global.py   # Search the whole library (titles/tags + frames, with confidence for frames)
 │   ├── database.py        # SQLite: users and videos (title, tags, public/private, status)
 │   ├── auth.py            # Password hashing and login tokens
 │   └── reset.py           # nuke_system: wipes the stored data (see note below)
@@ -225,8 +289,8 @@ All routes start with `/api` on your Modal URL. FastAPI also shows interactive d
 | GET | `/api/feed` | The latest 50 public videos |
 | GET | `/api/my_videos?user_id=` | All videos of a user |
 | GET | `/api/status?video_id=` | `processing`, `completed` or `failed` |
-| GET | `/api/search?query=&video_id=` | Search inside one video |
-| GET | `/api/search_global?query=` | Search the whole library |
+| GET | `/api/search?query=&video_id=` | Search inside one video. Each result has `timestamp`, `similarity`, `confidence` and `score` (confidence × 100) |
+| GET | `/api/search_global?query=` | Search the whole library. Visual matches include `confidence` |
 | GET | `/api/stream/{video_id}` | Play a video |
 | POST | `/api/reindex?video_id=` | Repair: re-scan a video (once per 5 minutes per video) |
 | GET | `/api/debug_files` | Lists all stored video files (for debugging; remove before real use) |
@@ -347,7 +411,8 @@ There is no settings file yet. These values are written directly in the code:
 | AI model | `backend/index.py`, `search.py`, `search_global.py` | `google/siglip-so400m-patch14-384` |
 | Results in "search inside a video" | `backend/search.py` | 10 closest frames |
 | Library search: titles checked / minimum score / bonus | `backend/search_global.py` | 20 / 0.10 / ×1.2 |
-| Library search: frames checked / minimum score | `backend/search_global.py` | 50 / 0.15 |
+| Library search: frames checked / minimum similarity | `backend/search_global.py` | 50 / 0.15 |
+| Minimum confidence (search inside a video, and visual matches in library search) | `backend/search.py` (`MIN_CONFIDENCE`) | 0.0 (off) |
 | GPU type, idle shutdown time | `backend/AI.py`, `backend/main.py` | T4, 5 minutes |
 | Login token lifetime | `backend/auth.py` | 7 days |
 | Repair cool-down | `backend/api.py` | 5 minutes |
@@ -383,7 +448,8 @@ To re-scan one video, use the **Repair** button on its page.
 | Website says it can't reach the backend | Wrong URL in `frontend/.env`, or backend not deployed | Open `https://<your-url>/api/feed`; check the Modal logs |
 | Video stuck on "AI Processing" | Indexing failed or is still running | Check the logs; press **Repair** |
 | "No frames found" in the logs | OpenCV can't read the video format (some iPhone `.mov` files) | Convert it: `ffmpeg -i in.mov -c:v libx264 -pix_fmt yuv420p out.mp4` |
-| Search inside a video shows nothing | Other videos had closer matches (see below), or the video isn't indexed yet | Try a more specific description; check the status |
+| Search inside a video shows nothing | Other videos had closer matches (see below), the video isn't indexed yet, or `MIN_CONFIDENCE` is set too high | Try a more specific description; check the status; lower `MIN_CONFIDENCE` |
+| Confidence bars look short even for good matches | Normal for SigLIP: its confidence wasn't tuned on your videos | Compare results within one search; see [How the confidence is calculated](#how-the-confidence-is-calculated) |
 | `/video/<id>` link shows "page not found" on Netlify | `_redirects` file missing | Step 7 |
 | First request takes a minute or more | Cold start: GPU machine starting and loading the model | Normal after a few idle minutes |
 
@@ -403,15 +469,16 @@ This is a prototype. Here's what doesn't work well yet, in plain words.
   after the last one. That's true for 24, 30 and 60 frames-per-second videos. For 29.97 fps
   (very common), each step is really about 0.47 seconds, so after 10 minutes the time shown
   is about 40 seconds off. Phone videos with a changing frame rate can drift too.
-- **Scores are raw similarity, not confidence.** There's no cut-off, so you always get results
-  even when nothing really matches.
+- **The confidence isn't tuned on your videos.** It comes from what SigLIP learned on its own
+  training pictures, so a good match can still show a low value. The cut-off
+  (`MIN_CONFIDENCE`) is off by default, so you still get results when nothing really matches,
+  until you raise it.
 - **Neighbouring frames aren't grouped.** One scene can fill several results.
 - **Library search scoring is uneven.** Every extra matching frame adds to a video's score and
   repeats "+ Visuals" in its label, so videos with many similar frames rank higher than they
   should. Videos found only by their frames show "Untitled (Visual Match)" instead of their title.
 - **Tags aren't searchable right after upload.** Only the title is indexed at upload; tags are
   added when the video is repaired.
-- **Library search runs on the CPU**, not the GPU, so it is slower than it should be.
 - **The AI model is reloaded on every search and upload**, which adds several seconds each time.
 - **Wide videos get squashed.** SigLIP looks at square pictures, so small things at the edges
   of a 16:9 frame can be missed.
@@ -454,8 +521,10 @@ Planned fixes, most important first:
 - [ ] Filter by video *before* searching, so search inside a video always finds its own frames
 - [ ] Use the real time of each frame from the video file, to the half second
 - [ ] Load the AI model once per GPU machine instead of on every request
-- [ ] Run library search on the GPU
-- [ ] Group neighbouring frames into one "moment" and add a minimum score
+- [x] Run library search on the GPU
+- [x] Show SigLIP's confidence for each visual match, with an optional minimum (`MIN_CONFIDENCE`)
+- [ ] Check the confidence on a few labelled searches and choose a sensible minimum
+- [ ] Group neighbouring frames into one "moment"
 - [ ] Library search: count each video once and show its real title
 - [ ] Index tags at upload time
 - [ ] Use a single writer for the search index so uploads can't overwrite each other
